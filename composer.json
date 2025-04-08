@@ -1,0 +1,17 @@
+{
+    "name": "patriciomelor/vn-church-finances",
+    "autoload": {
+        "psr-4": {
+            "Patriciomelor\\VnChurchFinances\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Patricio Melo",
+            "email": "42676797+patriciomelor@users.noreply.github.com"
+        }
+    ],
+    "require": {
+        "phpoffice/phpspreadsheet": "^4.1"
+    }
+}
