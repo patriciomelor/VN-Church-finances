@@ -26,7 +26,7 @@ class AuthController {
         if ($errorMessage) {
             $error_message = $errorMessage;
         }
-        require_once __DIR__ . '/../Views/login_form.php';
+        require_once __DIR__ . '/../Views/Login/LoginForm.php';
     }
 
     /**

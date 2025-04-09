@@ -13,7 +13,7 @@ require_once __DIR__ . '/../config/database.php'; // Asegúrate que WP_INSTALL_P
 // Importar Clases
 use Patriciomelor\VnChurchFinances\Lib\Database;     // Ajusta namespace
 use Patriciomelor\VnChurchFinances\Controllers\AuthController; // Ajusta namespace
-
+use Patriciomelor\VnChurchFinances\Controllers\UploadController; // Ajusta namespace
 // --- Conexión BD (Ya la probamos) ---
 $db = Database::getConnection();
 if (!$db) {
@@ -23,7 +23,7 @@ if (!$db) {
 
 // --- Instanciar Controladores ---
 $authController = new AuthController();
-
+$uploadController = new UploadController();
 // --- Ruteo Básico ---
 $action = $_GET['action'] ?? 'default'; // Acción por defecto
 
@@ -58,13 +58,26 @@ switch ($action) {
         $authController->logout();
         break;
     case 'dashboard':
-        // --- Placeholder para el Dashboard ---
-        // Más adelante crearemos un controlador/vista para esto
         echo "<h1>Panel Principal (Dashboard)</h1>";
         echo "<p>Bienvenido, usuario con ID: " . htmlspecialchars($_SESSION['user_id']) . " (" . htmlspecialchars($_SESSION['user_login']) . ")</p>";
+        echo '<p><a href="index.php?action=upload_form">Subir Nueva Cartola</a></p>'; // <-- NUEVO ENLACE
+        // Aquí podrías empezar a listar las cartolas ya subidas
+        // echo '<p><a href="index.php?action=list_periods">Ver Cartolas Subidas</a></p>'; // Futuro
+         echo '<hr>';
         echo '<a href="index.php?action=logout">Cerrar Sesión</a>';
-        // Asegúrate que esta página esté protegida (ya lo hicimos arriba)
         break;
+    case 'upload_form':
+        // Preparar datos del mensaje para la vista
+        $statusData = [];
+        if (isset($_GET['status'])) {
+            $statusData['type'] = $_GET['status']; // 'success' o 'error'
+            $statusData['message'] = $_GET['msg'] ?? ($_GET['status'] === 'success' ? 'Acción completada.' : 'Ocurrió un error.');
+        }
+        $uploadController->showUploadForm($statusData);
+        break;
+    case 'process_upload':
+        $uploadController->handleUpload();
+        break;    
     case 'default':
         // Redirigir a dashboard si está logueado, sino a login
         if ($isLoggedIn) {
