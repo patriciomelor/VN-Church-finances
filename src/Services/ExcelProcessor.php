@@ -1,7 +1,7 @@
 <?php
 // src/Lib/ExcelProcessor.php
 
-namespace Patriciomelor\VnChurchFinances\Lib; // Ajusta a tu namespace
+namespace Patriciomelor\VnChurchFinances\Services; // Ajusta a tu namespace
 
 // Importar clases de PhpSpreadsheet
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -71,10 +71,14 @@ class ExcelProcessor {
                 $processedRowCount++; // Contar fila procesada
 
                 // --- Leer datos crudos ---
-                $dateValue = $sheet->getCellByColumnAndRow($dateColIndex, $rowIndex)->getValue();
-                $descriptionRaw = $sheet->getCellByColumnAndRow($descColIndex, $rowIndex)->getValue();
-                $debitValueRaw = $sheet->getCellByColumnAndRow($debitColIndex, $rowIndex)->getValue();
-                $creditValueRaw = $sheet->getCellByColumnAndRow($creditColIndex, $rowIndex)->getValue();
+                $cellAddress = Coordinate::stringFromColumnIndex($dateColIndex) . $rowIndex;
+                $dateValue = $sheet->getCell($cellAddress)->getValue();
+                $cellAddress = Coordinate::stringFromColumnIndex($descColIndex) . $rowIndex;
+                $descriptionRaw = $sheet->getCell($cellAddress)->getValue();
+                $cellAddress = Coordinate::stringFromColumnIndex($debitColIndex) . $rowIndex;
+                $debitValueRaw = $sheet->getCell($cellAddress)->getValue();
+                $cellAddress = Coordinate::stringFromColumnIndex($creditColIndex) . $rowIndex;
+                $creditValueRaw = $sheet->getCell($cellAddress)->getValue();
 
                 // --- Validar / Saltar fila ---
                 // Saltar si la fecha está vacía

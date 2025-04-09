@@ -133,7 +133,7 @@ class UploadController {
                     // 2. Instanciar y llamar al procesador de Excel
                     //    (Asegúrate que el namespace sea el correcto)
                     try {
-                        $processor = new \Patriciomelor\VnChurchFinances\Lib\ExcelProcessor();
+                        $processor = new \Patriciomelor\VnChurchFinances\Services\ExcelProcessor();
                         $processingResult = $processor->processStatement($targetPath, (int)$periodId);
 
                         // 3. Redirigir según el resultado del procesamiento
