@@ -107,8 +107,12 @@ class UploadController {
         $uniqueFilename = uniqid('cartola_' . $year . '_' . $month . '_', true) . '.' . $extension;
         $targetPath = $this->uploadDir . $uniqueFilename;
 
+  // Dentro de UploadController.php, en el método handleUpload()
+
+        // ... (Validaciones previas del archivo y mes/año) ...
+
         if (move_uploaded_file($file['tmp_name'], $targetPath)) {
-            // --- Archivo movido con éxito -> Registrar en BD ---
+            // --- Archivo movido con éxito -> Registrar en BD 'periods' ---
             try {
                 $sql = "INSERT INTO periods (month, year, original_filename, stored_filename, uploaded_by_user_id, uploaded_at)
                         VALUES (:month, :year, :original_filename, :stored_filename, :user_id, NOW())";
@@ -118,34 +122,61 @@ class UploadController {
                 $stmt->bindParam(':year', $year, PDO::PARAM_INT);
                 $stmt->bindParam(':original_filename', $originalFilename, PDO::PARAM_STR);
                 $stmt->bindParam(':stored_filename', $uniqueFilename, PDO::PARAM_STR);
-                $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT); // Asumiendo BIGINT UNSIGNED -> INT está bien aquí
+                $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
 
                 if ($stmt->execute()) {
-                    // ¡Éxito total!
-                    $this->redirectWithSuccess('Cartola subida y registrada correctamente.');
-                    return;
+                    // --- Registro en 'periods' exitoso ---
+
+                    // 1. Obtener el ID del período recién insertado
+                    $periodId = $this->db->lastInsertId();
+
+                    // 2. Instanciar y llamar al procesador de Excel
+                    //    (Asegúrate que el namespace sea el correcto)
+                    try {
+                        $processor = new \Patriciomelor\VnChurchFinances\Lib\ExcelProcessor();
+                        $processingResult = $processor->processStatement($targetPath, (int)$periodId);
+
+                        // 3. Redirigir según el resultado del procesamiento
+                        if ($processingResult['success']) {
+                             $this->redirectWithSuccess($processingResult['message']); // Mensaje viene del procesador
+                        } else {
+                             // Éxito al subir y registrar período, pero error al procesar transacciones
+                             $this->redirectWithError($processingResult['message']); // Mensaje viene del procesador
+                        }
+                        // ¡Importante! Salir después de la redirección
+                        exit;
+
+                    } catch (\Exception $procErr) {
+                        // Error al instanciar o ejecutar el procesador
+                        error_log("Error llamando a ExcelProcessor para period_id $periodId: " . $procErr->getMessage());
+                        // Dejamos el registro en 'periods' pero informamos del fallo de procesamiento
+                        $this->redirectWithError('Cartola subida, pero falló el procesamiento de transacciones. Revise los logs.');
+                        exit;
+                    }
+
                 } else {
-                     error_log("Error al ejecutar INSERT en periods.");
-                     unlink($targetPath); // Borrar archivo si falló el registro en BD
-                     $this->redirectWithError('Error al guardar la información en la base de datos.');
-                     return;
+                     // Error al ejecutar INSERT en 'periods'
+                     error_log("Error al ejecutar INSERT en periods. Info: " . print_r($stmt->errorInfo(), true));
+                     unlink($targetPath); // Borrar archivo físico si falló el registro en BD
+                     $this->redirectWithError('Error al guardar la información inicial en la base de datos.');
+                     return; // Salir
                 }
 
             } catch (PDOException $e) {
+                // Error de PDO al insertar en 'periods'
                 error_log("PDOException al insertar en periods: " . $e->getMessage());
-                unlink($targetPath); // Borrar archivo si falló el registro en BD
-                $this->redirectWithError('Error interno del servidor (BD).');
-                return;
+                unlink($targetPath); // Borrar archivo físico si falló el registro en BD
+                $this->redirectWithError('Error interno del servidor (BD al registrar período).');
+                return; // Salir
             }
 
         } else {
-            // Error al mover el archivo
-            error_log("Error: move_uploaded_file falló para " . $targetPath);
+            // Error al mover el archivo subido
+            error_log("Error: move_uploaded_file falló para " . $targetPath . " desde " . $file['tmp_name']);
             $this->redirectWithError('Error al guardar el archivo subido en el servidor.');
-            return;
+            return; // Salir
         }
     }
-
     /**
      * Redirige de vuelta al formulario con un mensaje de éxito.
      */
